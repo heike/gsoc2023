@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.2.269">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Can you see it now? – two-tone lines and annotations in ggplot2</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1.6em;
+  vertical-align: middle;
+}
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+}
+.hanging div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}
+</style>
+
+
+<script src="proposal_files/libs/clipboard/clipboard.min.js"></script>
+<script src="proposal_files/libs/quarto-html/quarto.js"></script>
+<script src="proposal_files/libs/quarto-html/popper.min.js"></script>
+<script src="proposal_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="proposal_files/libs/quarto-html/anchor.min.js"></script>
+<link href="proposal_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="proposal_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="proposal_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="proposal_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="proposal_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Can you see it now? – two-tone lines and annotations in ggplot2</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+</header>
+
+<section id="background" class="level2">
+<h2 class="anchored" data-anchor-id="background">Background</h2>
+<p>Using color in visualizations is tricky. Even while leaving the ‘best’ color choices to artists, the advice on using colors in data visualizations ranges from avoidance <span class="citation" data-cites="wongAvoidingColor2011">(<a href="#ref-wongAvoidingColor2011" role="doc-biblioref">Wong 2011</a>)</span> to not doing any harm <span class="citation" data-cites="tufteEnvisioningInformation1990">(<a href="#ref-tufteEnvisioningInformation1990" role="doc-biblioref">Tufte 1990</a>)</span>.</p>
+<p>We want to address one specific problem in choosing colors: that of making annotations on charts better visible. In the table below we show three strategies of using a pullout for annotating an element in a plot. The focus is on the line connecting the textual annotation to the plot element. Choosing a color for the connecting line that is both well visible on dark and light background is … difficult. As we see in the table, the light line (left image) disappears over light background, while the darker line (right image) disppears on the darker background. So which color was used to prevent the line from not disappearing in the middle image? The line is actually made up of two separate line segments in two different colors.</p>
+<table class="table">
+<caption>Zoom into an image using a line for annotation: three implementations</caption>
+<colgroup>
+<col style="width: 29%">
+<col style="width: 41%">
+<col style="width: 29%">
+</colgroup>
+<tbody>
+<tr class="odd">
+<td><img src="annotation-light.png" class="img-fluid" style="width:100.0%"></td>
+<td><img src="annotation-both.png" class="img-fluid" style="width:100.0%"></td>
+<td><img src="annotation-dark.png" class="img-fluid" style="width:100.0%"></td>
+</tr>
+<tr class="even">
+<td>light grey line</td>
+<td></td>
+<td>dark grey line</td>
+</tr>
+</tbody>
+</table>
+<table class="table">
+<caption>Zooming in even further: the ‘line’ is actually made up of two different colored line segments</caption>
+<colgroup>
+<col style="width: 29%">
+<col style="width: 41%">
+<col style="width: 29%">
+</colgroup>
+<tbody>
+<tr class="odd">
+<td></td>
+<td><img src="annotation-zoom.png" class="img-fluid" style="width:100.0%"></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<section id="with-colors-it-always-depends" class="level3">
+<h3 class="anchored" data-anchor-id="with-colors-it-always-depends">With colors it always depends …</h3>
+<p>Colors are extremely context-sensitive, i.e.&nbsp;the way that we perceive a color is affected both by its physical and its conceptual context. The physical context of a color is given by the colors around it. The conceptual concept is given by our understanding of ‘the bigger picture’.</p>
+<p>The colors in the marked tiles of the images in the table below are identical. The image on the left is an example where our perception of a color is changed by the colors around it. The tile on the left is in an area where most of the other tiles are a darker shade of red, whereas the surrounding tiles on the right are of a lighter shade of red than the marked tile. This tricks our perception, and for (most of) us the tile on the left appears to be lighter than the tile on the right. In the image on the right, the conceptual context is that of a checkerboard, ie. we expect to see dark and light tiles. The tile marked A is one the dark checkered tiles, while B marks one of the lighter tiles. Additionally, the green cylinder throws its shadow over the board. In its entirety this masks the fact that the colors in tiles A and B are identical.</p>
+<table class="table">
+<caption>Physical and conceptual context influence our color perception</caption>
+<colgroup>
+<col style="width: 42%">
+<col style="width: 57%">
+</colgroup>
+<tbody>
+<tr class="odd">
+<td><img src="color-physical.png" class="img-fluid"></td>
+<td><img src="http://persci.mit.edu/_media/gallery/checkershadow_illusion4med.jpg?w=540&amp;h=420" class="img-fluid" alt="The squares marked A and B are the same shade of gray"></td>
+</tr>
+<tr class="even">
+<td>Physcial context: the two shades of red at the end point of the lines are identical.</td>
+<td>Conceptual context: the colors in the tiles marked A and B are identical: checker shadow color illusion <span class="citation" data-cites="adelsonCheckershadowIllusion1995">(<a href="#ref-adelsonCheckershadowIllusion1995" role="doc-biblioref">Adelson 1995</a>)</span></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="color-models" class="level3">
+<h3 class="anchored" data-anchor-id="color-models">Color models</h3>
+<p>Colors themselves are multivariate objects, i.e.&nbsp;each color is made up from different, sometimes related pieces that together create a color. There is a large number of models used to describe colors - one of the most familiar ones is the RGB model, which describes a color as a triplet of values between 0 and 255, describing the contributions of red, green, and blue to a color C, where black is denoted as (0,0,0), and white as (255,255,255). Because <span class="math inline">\(255 = 16^2 - 1\)</span>, a color can be written as a hexadecimal number of length six, where positions 1 and 2 describe the amount of red, positions 3 and 4 describe the amount of green, and the last two position describe the amount of blue. Colors in this parameterization are very common on the web and usually referred to as hexcolors.</p>
+<p>Perceptually, the RGB model is not well suited, because we do not perceive colors as part red, green, and blue. A perceptually very useful model is the <a href="https://en.wikipedia.org/wiki/Munsell_color_system">Munsell color space</a>. Albert Munsell was a painter, and the color space is heavily influenced by a painter’s approach: this space describes a color by its hue on a color wheel (with colors ordered by their wavelength), the amount of color (or chroma) mixed into a base of grey (the ‘value’, a gradient of grey shades between black and white). While keeping similar parameterizations, the HCL color space has by now replaced Munsell colorspace. HCL is a <a href="https://en.wikipedia.org/wiki/List_of_color_spaces_and_their_uses">perceptually uniform color space</a>, ie. we differences between colors can be expressed as a distance. Colors that are the same distance apart are perceived as similarly different.</p>
+<table class="table">
+<caption>Different color spaces</caption>
+<colgroup>
+<col style="width: 42%">
+<col style="width: 57%">
+</colgroup>
+<tbody>
+<tr class="odd">
+<td><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/Munsell-system.svg/580px-Munsell-system.svg.png" class="img-fluid"></td>
+<td><img src="hcl.png" class="img-fluid"></td>
+</tr>
+<tr class="even">
+<td>Munsell color space, image © 2007, Jacob Rus</td>
+<td>HCL or L * C * h(uv)</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="color-contrast" class="level3">
+<h3 class="anchored" data-anchor-id="color-contrast">Color contrast</h3>
+<p>Perceptually uniform color spaces allow us to address some questions of perception and visibility of colors in a quantitative manner. The contrast between two colors largely determines whether we see two different colors. Color contrast is defined by the W3C (World Wide Web Consortium) as the ratio of the relative luminances of two colors. In WCAG (Web Content Accessibility Guidelines (WCAG)) 2.0 minimal thresholds of this ratio are used to determine readability of text on background for different color combinations. Since these guidelines were published in 2008, research into color has not stopped, and in particular, the idea of contrasts between colors depending solely on their luminance should be discarded, see e.g.&nbsp;<a href="https://blog.datawrapper.de/color-contrast-check-data-vis-wcag-apca/">Lisa Charlotte Muth’s blog post</a>. Most likely the WCAG 3.0 standard will contain some form of an updated color contrast algorithm, such as the APCA (Advanced Perceptual Contrast Algorithm).</p>
+</section>
+<section id="two-tone-lines" class="level3">
+<h3 class="anchored" data-anchor-id="two-tone-lines">Two-tone lines</h3>
+<p>Taking all of these different color aspects together, they provide a good basis of why a two-tone approach for lines will help with visibility:</p>
+<ol type="1">
+<li>Using a light and a dark shade of the same hue in side-by-side lines makes the visibility of the line less dependent on the background: in dark areas, the lighter shaded line has a higher contrast, while in light backgrounds the darker line raises the contrast.</li>
+<li>If the overall line width is thin, the two tones in the line will likely stay below the detection threshold by a viewer, but won’t likely add to any confusion when detected.</li>
+</ol>
+<p>Rather than manually drawing suitable lines for each annotation, we seek an implementation that directly extends the <code>ggplot2</code> <span class="citation" data-cites="wickhamGgplot2ElegantGraphics2016">(<a href="#ref-wickhamGgplot2ElegantGraphics2016" role="doc-biblioref">Wickham 2016</a>)</span> plotting environment.</p>
+<hr>
+</section>
+</section>
+<section id="related-work" class="level2">
+<h2 class="anchored" data-anchor-id="related-work">Related work</h2>
+<p>Annotations in charts are a powerful way of directly label or empahisize aspects of a chart. Tools for annotations exist in various forms. Annotations themselves are visual in nature, which means that any visualization system either offers functionality for annotations or can be used to for annotating elements, i.e.&nbsp;the <code>ggplot2</code> package provides the function <code>annotate</code>, but we can make use of the layering system to implement whole data sets of annotations.</p>
+<p>We are not aware of any package in R that would address visibility of annotations based on color modifications. The maybe most closely related R package is <code>ggshadow</code> <span class="citation" data-cites="menemGgshadowShadowGlow2022">(<a href="#ref-menemGgshadowShadowGlow2022" role="doc-biblioref">Menem 2022</a>)</span>. This package implements layers of glow lines and shadows of lines. We have investigated this package for use in the scenario described above and found that there was not enough control over the line widths available to ensure an equal side-by-side of the two color tones. The package <code>ggrepel</code> <span class="citation" data-cites="slowikowskiGgrepelAutomaticallyPosition2022">(<a href="#ref-slowikowskiGgrepelAutomaticallyPosition2022" role="doc-biblioref">Slowikowski 2022</a>)</span> addresses poor readability of overlapping annotations by providing modified positioning.</p>
+<p>This project touches (very gently) on accessibility of charts in R. Recent developments in this respect include the package <code>BrailleR</code> <span class="citation" data-cites="godfreyBrailleRImprovedAccess2021">(<a href="#ref-godfreyBrailleRImprovedAccess2021" role="doc-biblioref">Godfrey 2021</a>)</span> for automatic descriptions of plot content and the package <code>sonify</code> <span class="citation" data-cites="siegertSonifyDataSonification2017">(<a href="#ref-siegertSonifyDataSonification2017" role="doc-biblioref">Siegert and Williams 2017</a>)</span> for turning data into sound.</p>
+</section>
+<section id="details-of-your-coding-project" class="level2">
+<h2 class="anchored" data-anchor-id="details-of-your-coding-project">Details of your coding project</h2>
+<p>The goal of this project is to create an R package extending <code>ggplot2</code> functionality by implementing a seamlessly integrated geom for a two-tone colored line.</p>
+<p>What you will need to bring: good R coding skills, good knowledge of the <code>ggplot2</code> framework, and the interest to look deeper under the hood of <code>ggplot2</code> and the <code>grid</code> package.</p>
+</section>
+<section id="expected-impact" class="level2">
+<h2 class="anchored" data-anchor-id="expected-impact">Expected impact</h2>
+<p>Mentors, please explain how this project will produce a useful package for the R community.</p>
+</section>
+<section id="mentors" class="level2">
+<h2 class="anchored" data-anchor-id="mentors">Mentors</h2>
+<p>Contributors, please contact mentors below after completing at least one of the tests below.</p>
+<ul>
+<li>EVALUATING MENTOR: Haley Jeppson <a href="mailto:hjeppson@niss.org" class="email">hjeppson@niss.org</a> is the author of the R package <code>ggmosaic</code>.</li>
+<li>Heike Hofmann <a href="mailto:heike.hofmann@gmail.com" class="email">heike.hofmann@gmail.com</a> is an expert in data visualization, author of the R packages <code>ggpcp</code>, <code>x3ptools</code>, <code>bulletxtrctr</code>, among others, and has previous GSOC experience with the R organization in 2016, 2017, and 2019.</li>
+</ul>
+</section>
+<section id="tests" class="level2">
+<h2 class="anchored" data-anchor-id="tests">Tests</h2>
+<p>Contributors, please do at least two of the following tests before contacting the mentors above.</p>
+<section id="easy-test" class="level3">
+<h3 class="anchored" data-anchor-id="easy-test">Easy Test:</h3>
+<p>Install the package <code>colorspace</code> <span class="citation" data-cites="zeileisEscapingRGBlandSelecting2009 zeileisColorspaceToolboxManipulating2020">(<a href="#ref-zeileisEscapingRGBlandSelecting2009" role="doc-biblioref">Zeileis, Hornik, and Murrell 2009</a>; <a href="#ref-zeileisColorspaceToolboxManipulating2020" role="doc-biblioref">Zeileis et al. 2020</a>)</span> implements functionality for working with colors. The function <code>colorspace::contrast_ratio</code> provides an assessment of the contrast ratio between two or more colors using both the WCAG 2.0 standard and the newer APCA algorithm. Write a function that samples a set of colors,</p>
+<ol type="1">
+<li>assesses their color contrast (in either WCAG or APCA) to a light grey, such as “#eeeeee”, and a dark grey, such as “#111111”.</li>
+<li>then visualizes a color tile labelled with the hexcode of the color and the contrast ratio. The labelling should be in the color that provides the greater contrast.</li>
+</ol>
+</section>
+<section id="medium-test" class="level3">
+<h3 class="anchored" data-anchor-id="medium-test">Medium Test:</h3>
+<p><a href="https://ggplot2-book.org/extensions.html#new-geoms">Chapter 21</a> of Hadley Wickham’s book “ggplot2: Elegant Graphics for Data Analysis” describes how to extend ggplot2.</p>
+<p>Write a geom called <code>GeomSegmentDual</code> that extends the regular <code>ggplot2</code> GeomSegment. Implement the function <code>draw_panel</code> to allow for two calls to <code>segmentsGrob</code> drawing two sets of lines side by side as shown below. You will find the function <code>convertHeight</code> to be of importance. What does the call <code>convertHeight(unit(.pt,"pt"), unitTo = "npc", valueOnly = TRUE)</code> in <code>draw_panel</code> return?</p>
+<pre><code>draw_panel &lt;- function(self, data, panel_params, coord, arrow = NULL, arrow.fill = NULL,
+                                             lineend = "butt", linejoin = "round", na.rm = FALSE) {
+ ...
+ 
+ s1 &lt;- segmentsGrob( ...) # color segments in color 1
+ s2 &lt;- segmentsGrob( ...) # color segments in color 2
+ 
+ return(gList(s1, s2))
+}</code></pre>
+</section>
+<section id="hard-test" class="level3">
+<h3 class="anchored" data-anchor-id="hard-test">Hard Test:</h3>
+<p>Wrap the two function from the easy and the medium test into an R package. Add documentation with some examples of use cases. Make sure that your package passes <code>R CMD check</code>.</p>
+</section>
+</section>
+<section id="solutions-of-tests" class="level2">
+<h2 class="anchored" data-anchor-id="solutions-of-tests">Solutions of tests</h2>
+<p>Contributors, please post a link to your test results here.</p>
+<ul>
+<li>EXAMPLE CONTRIBUTOR 1 NAME, LINK TO GITHUB PROFILE, LINK TO TEST RESULTS.</li>
+</ul>
+
+</section>
+
+<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body hanging-indent" role="doc-bibliography">
+<div id="ref-adelsonCheckershadowIllusion1995" class="csl-entry" role="doc-biblioentry">
+Adelson, Edward. 1995. <span>“Checkershadow <span>Illusion</span>.”</span> 1995. <a href="http://persci.mit.edu/gallery/checkershadow">http://persci.mit.edu/gallery/checkershadow</a>.
+</div>
+<div id="ref-godfreyBrailleRImprovedAccess2021" class="csl-entry" role="doc-biblioentry">
+Godfrey, A. Jonathan R. 2021. <em><span>BrailleR</span>: <span>Improved</span> Access for Blind Users</em> (version version 0.32.1). R Package. <span>Massey University</span>. <a href="https://cran.r-project.org/package=BrailleR">https://cran.r-project.org/package=BrailleR</a>.
+</div>
+<div id="ref-menemGgshadowShadowGlow2022" class="csl-entry" role="doc-biblioentry">
+Menem, Marc. 2022. <em>Ggshadow: <span>Shadow</span> and <span>Glow Geoms</span> for ’Ggplot2’</em> (version version 0.0.5). R Package. <a href="https://CRAN.R-project.org/package=ggshadow">https://CRAN.R-project.org/package=ggshadow</a>.
+</div>
+<div id="ref-siegertSonifyDataSonification2017" class="csl-entry" role="doc-biblioentry">
+Siegert, Stefan, and Robin Williams. 2017. <em>Sonify: <span>Data</span> Sonification - Turning Data into Sound</em> (version version 0.0-1). R Package. <a href="https://CRAN.R-project.org/package=sonify">https://CRAN.R-project.org/package=sonify</a>.
+</div>
+<div id="ref-slowikowskiGgrepelAutomaticallyPosition2022" class="csl-entry" role="doc-biblioentry">
+Slowikowski, Kamil. 2022. <em>Ggrepel: <span>Automatically</span> Position Non-Overlapping Text Labels with ’Ggplot2’</em> (version version 0.9.2). R Package. <a href="https://CRAN.R-project.org/package=ggrepel">https://CRAN.R-project.org/package=ggrepel</a>.
+</div>
+<div id="ref-tufteEnvisioningInformation1990" class="csl-entry" role="doc-biblioentry">
+Tufte, Edward R. 1990. <em>Envisioning <span>Information</span></em>. 1st ed. <span>Graphics Press</span>.
+</div>
+<div id="ref-wickhamGgplot2ElegantGraphics2016" class="csl-entry" role="doc-biblioentry">
+Wickham, Hadley. 2016. <em>Ggplot2: <span>Elegant</span> Graphics for Data Analysis</em>. <span>Springer-Verlag New York</span>. <a href="https://ggplot2.tidyverse.org">https://ggplot2.tidyverse.org</a>.
+</div>
+<div id="ref-wongAvoidingColor2011" class="csl-entry" role="doc-biblioentry">
+Wong, Bang. 2011. <span>“Avoiding Color.”</span> <em>Nature Methods</em> 8 (7, 7): 525–25. <a href="https://doi.org/10.1038/nmeth.1642">https://doi.org/10.1038/nmeth.1642</a>.
+</div>
+<div id="ref-zeileisColorspaceToolboxManipulating2020" class="csl-entry" role="doc-biblioentry">
+Zeileis, Achim, Jason C. Fisher, Kurt Hornik, Claire D. Ihaka Rossnd McWh ite, Paul Murrell, Reto Stauffer, and Claus. Wilke. 2020. <span>“Colorspace: <span>A Toolbox</span> for <span>Manipulating</span> and <span>Assessing Colors</span> and Alettes.”</span> <em>Journal of Statistical Software</em> 96 (1): 1–49. <a href="https://doi.org/10.18637/jss.v096.i01">https://doi.org/10.18637/jss.v096.i01</a>.
+</div>
+<div id="ref-zeileisEscapingRGBlandSelecting2009" class="csl-entry" role="doc-biblioentry">
+Zeileis, Achim, Kurt Hornik, and Paul Murrell. 2009. <span>“Escaping <span>RGBland</span>: <span>Selecting</span> Colors for Statistical Graphics.”</span> <em>Computational Statistics &amp; Data Analysis</em> 53 (9): 3259–70. <a href="https://doi.org/10.1016/j.csda.2008.11.033">https://doi.org/10.1016/j.csda.2008.11.033</a>.
+</div>
+</div></section></div></main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    target: function(trigger) {
+      return trigger.previousElementSibling;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>
